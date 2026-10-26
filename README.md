@@ -34,7 +34,7 @@ The application detects an absent or placeholder key and shows instructions on s
 
 ## Run
 
-No package installation or build step is needed. Double-click `index.html` or serve this directory with a static server. `config.js` is loaded before `script.js`; do not rename either file without updating `index.html`.
+No package installation or build step is needed for local static use. Double-click `index.html` or serve this directory with a static server. On local hosts, `config.js` is loaded before `script.js`; the Vercel deployment instead uses the serverless API function.
 
 ## Deployment
 
@@ -42,13 +42,19 @@ No package installation or build step is needed. Double-click `index.html` or se
 
 1. Create a repository and add the source files, excluding `config.js` (the `.gitignore` already excludes it).
 2. In the repository settings, enable Pages for the branch and folder containing `index.html`.
-3. Since a browser-only app cannot keep a key secret, put a restricted public key in the deployed `config.js` only if you accept that visitors can inspect it. Configure key restrictions and usage limits with the provider where available. For a production deployment, proxy API requests through a serverless function and keep the key in its environment variables.
+3. This project currently routes hosted requests through Vercel’s `/api/weather` function. To use GitHub Pages instead, add a GitHub-compatible serverless proxy or change the app to use a browser-visible restricted key.
 
 ### Netlify
 
 1. Import the repository or drag the project folder into Netlify Drop.
 2. Set the publish directory to the project root; no build command is required.
-3. A static deployment needs a browser-visible key. As with GitHub Pages, use provider restrictions for a demo or move API calls to a serverless function for production.
+3. This project currently routes hosted requests through Vercel’s `/api/weather` function. To use Netlify instead, add a Netlify Function or change the app to use a browser-visible restricted key.
+
+### Vercel
+
+This project includes `vercel.json` and a serverless proxy at `api/weather.js`. Select **Other** as the framework preset, leave the build and install commands blank, and use `.` as the output directory. In Vercel Project Settings → Environment Variables, add `OPENWEATHERMAP_API_KEY` with your OpenWeatherMap key for Production, Preview, and Development as needed. Redeploy after changing the variable. The browser calls the same-origin function, and the function reads the key from its server environment.
+
+For local development, `config.js` is still used when opening the app directly or serving it with Live Server. To exercise the Vercel function locally, install the Vercel CLI and run `vercel dev` after linking the project and setting its environment variable; Vercel's default local port is 3000.
 
 ## Screenshots
 
@@ -56,7 +62,7 @@ Add a captured dashboard image at `screenshots/dashboard-placeholder.png`, or up
 
 ## Future improvements
 
-- Move the API key behind a small serverless proxy and add response caching.
+- Add request throttling and tune caching around the serverless proxy.
 - Add saved favorite locations and richer city disambiguation.
 - Add precipitation probability, UV index, and severe-weather notifications.
 - Add automated browser checks and translated labels.

@@ -13,7 +13,11 @@
     href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <script src="config.js"></script>
+  <script>
+    // config.js is ignored by Git, so load it only for local browser development.
+    const localHost = location.protocol === 'file:' || ['localhost', '127.0.0.1'].includes(location.hostname);
+    if (localHost) document.write('<script src="config.js"><\/script>');
+  </script>
   <script src="script.js" defer></script>
 </head>
 

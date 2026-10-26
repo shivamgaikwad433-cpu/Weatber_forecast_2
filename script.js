@@ -4,6 +4,11 @@
 
   const API_ROOT = 'https://api.openweathermap.org/data/2.5';
   const GEO_ROOT = 'https://api.openweathermap.org/geo/1.0';
+  // Production requests go through Vercel so the API key stays on the server.
+  const localHost = ['localhost', '127.0.0.1'].includes(location.hostname);
+  const useVercelApi = location.protocol !== 'file:' && (!localHost || location.port === '3000' || new URLSearchParams(location.search).get('api') === 'vercel');
+  // `typeof` safely handles Vercel deployments where the local config file is absent.
+  const browserApiKey = typeof API_KEY === 'undefined' ? '' : API_KEY;
   const DEFAULT_CITY = 'Pune';
   const state = { unit: 'metric', current: null, forecast: null, city: null, suggestions: [], timer: null, lightMode: false };
   const el = (id) => document.getElementById(id);
@@ -13,27 +18,50 @@
   // Turn API or browser errors into short, actionable messages.
   function explainError(error) {
     if (error.name === 'TypeError') return 'Could not reach OpenWeatherMap. Check your internet connection and try again.';
-    if (error.status === 401) return 'Your OpenWeatherMap API key is missing or invalid. Add a valid key to config.js and reload the page.';
+    if (error.status === 401) return 'Your OpenWeatherMap API key is missing or invalid. Check config.js locally or OPENWEATHERMAP_API_KEY in Vercel.';
     if (error.status === 404) return 'We couldn’t find that city. Check the spelling or choose a suggestion.';
     if (error.status === 429) return 'Weather requests are temporarily limited. Please wait a moment and try again.';
+    if (error.status === 503) return 'The weather service is not configured. Add OPENWEATHERMAP_API_KEY in Vercel project settings.';
     if (error.code === 1) return 'Location access was denied. Allow location access in your browser settings, or search for a city.';
     if (error.code === 2 || error.code === 3) return 'We couldn’t get your location. Check device location settings or search for a city.';
     return error.message || 'Something went wrong while loading the weather. Please try again.';
   }
 
   async function request(url) {
-    const response = await fetch(url);
+    const response = await fetch(useVercelApi ? createProxyUrl(url) : url);
+    const result = await response.json();
     if (!response.ok) {
-      const error = new Error('Weather service returned an error.');
+      const error = new Error(result.message || 'Weather service returned an error.');
       error.status = response.status;
       throw error;
     }
-    return response.json();
+    return result;
+  }
+
+  // Convert known OpenWeatherMap URLs into a same-origin Vercel Function request.
+  function createProxyUrl(openWeatherUrl) {
+    const original = new URL(openWeatherUrl);
+    const endpointByPath = {
+      '/data/2.5/weather': 'current',
+      '/data/2.5/forecast': 'forecast',
+      '/geo/1.0/direct': 'geocode',
+      '/geo/1.0/reverse': 'reverse'
+    };
+    const endpoint = endpointByPath[original.pathname];
+    if (!endpoint) throw new Error('Unsupported weather request.');
+
+    const proxyUrl = new URL('/api/weather', location.origin);
+    proxyUrl.searchParams.set('endpoint', endpoint);
+    original.searchParams.forEach((value, key) => {
+      if (key !== 'appid') proxyUrl.searchParams.set(key, value);
+    });
+    return proxyUrl;
   }
 
   // OpenWeatherMap keys can take a little while to activate after creation.
   function checkApiKey() {
-    if (typeof API_KEY === 'undefined' || !API_KEY || API_KEY === 'YOUR_OPENWEATHERMAP_API_KEY') {
+    if (useVercelApi) return;
+    if (!browserApiKey || browserApiKey === 'YOUR_OPENWEATHERMAP_API_KEY') {
       const error = new Error('Add your OpenWeatherMap key to config.js, then reload the page.');
       error.status = 401;
       throw error;
@@ -42,19 +70,19 @@
 
   async function getCoordinates(city) {
     checkApiKey();
-    const places = await request(`${GEO_ROOT}/direct?q=${encodeURIComponent(city)}&limit=1&appid=${API_KEY}`);
+    const places = await request(`${GEO_ROOT}/direct?q=${encodeURIComponent(city)}&limit=1&appid=${browserApiKey}`);
     if (!places.length) { const error = new Error('City not found.'); error.status = 404; throw error; }
     return places[0];
   }
 
   async function getWeather(lat, lon) {
     checkApiKey();
-    return request(`${API_ROOT}/weather?lat=${lat}&lon=${lon}&units=metric&appid=${API_KEY}`);
+    return request(`${API_ROOT}/weather?lat=${lat}&lon=${lon}&units=metric&appid=${browserApiKey}`);
   }
 
   async function getForecast(lat, lon) {
     checkApiKey();
-    return request(`${API_ROOT}/forecast?lat=${lat}&lon=${lon}&units=metric&appid=${API_KEY}`);
+    return request(`${API_ROOT}/forecast?lat=${lat}&lon=${lon}&units=metric&appid=${browserApiKey}`);
   }
 
   // Load both endpoints together, then render from their shared coordinates.
@@ -190,7 +218,7 @@
     if (query.trim().length < 2) { closeSuggestions(); return; }
     try {
       checkApiKey();
-      const places = await request(`${GEO_ROOT}/direct?q=${encodeURIComponent(query)}&limit=5&appid=${API_KEY}`);
+      const places = await request(`${GEO_ROOT}/direct?q=${encodeURIComponent(query)}&limit=5&appid=${browserApiKey}`);
       state.suggestions = places; suggestionsBox.replaceChildren();
       places.forEach((place, index) => {
         const option = document.createElement('button'); option.type = 'button'; option.className = 'suggestion-option'; option.setAttribute('role','option'); option.setAttribute('aria-selected','false'); option.id = `suggestion-${index}`;
@@ -227,7 +255,7 @@
     if (!navigator.geolocation) { showError('Your browser does not support location. Search for a city instead.'); return; }
     setLoading(true); clearError();
     navigator.geolocation.getCurrentPosition(async ({ coords }) => {
-      try { checkApiKey(); const places = await request(`${GEO_ROOT}/reverse?lat=${coords.latitude}&lon=${coords.longitude}&limit=1&appid=${API_KEY}`); if (!places.length) throw new Error('Could not identify your location.'); await loadCity(places[0]); }
+      try { checkApiKey(); const places = await request(`${GEO_ROOT}/reverse?lat=${coords.latitude}&lon=${coords.longitude}&limit=1&appid=${browserApiKey}`); if (!places.length) throw new Error('Could not identify your location.'); await loadCity(places[0]); }
       catch (error) { setLoading(false); showError(explainError(error)); }
     }, (error) => { setLoading(false); showError(explainError(error)); }, { timeout: 10000, maximumAge: 300000 });
   });
