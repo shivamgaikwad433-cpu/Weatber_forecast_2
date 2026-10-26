@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101a36">
+  <meta name="description" content="A real-time weather dashboard with current conditions and a five-day forecast.">
+  <title>SkyCast — Weather Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="config.js"></script>
+  <script src="script.js" defer></script>
+</head>
+
+<body class="theme-clear">
+  <header class="topbar">
+    <a class="brand" href="#" aria-label="SkyCast home"><span class="brand-mark"
+        aria-hidden="true">✦</span><span>SkyCast</span></a>
+    <div class="header-actions">
+      <button class="icon-button" id="theme-toggle" type="button" aria-label="Switch to dark mode"
+        title="Toggle light and dark mode"><span aria-hidden="true">☾</span></button>
+      <div class="unit-switch" role="group" aria-label="Temperature units">
+        <button type="button" class="unit-button active" data-unit="metric" aria-pressed="true">°C</button>
+        <button type="button" class="unit-button" data-unit="imperial" aria-pressed="false">°F</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-shell">
+    <section class="intro" aria-labelledby="page-title">
+      <div>
+        <p class="eyebrow">WEATHER, AT A GLANCE</p>
+        <h1 id="page-title">Your day, in the <span>forecast.</span></h1>
+      </div>
+      <p class="intro-note">A little clarity for whatever’s outside.</p>
+    </section>
+
+    <section class="search-area" aria-label="Find a city">
+      <form id="search-form" class="search-form" autocomplete="off">
+        <label class="sr-only" for="city-search">Search for a city</label>
+        <span class="search-icon" aria-hidden="true">⌕</span>
+        <input id="city-search" name="city" type="search" placeholder="Search city…" aria-label="Search city"
+          aria-autocomplete="list" aria-controls="suggestions" aria-expanded="false">
+        <button class="location-button" id="location-button" type="button" aria-label="Use my location"
+          title="Use my location"><span aria-hidden="true">◎</span><span class="location-label">My
+            location</span></button>
+        <button class="search-button" type="submit">Search</button>
+        <ul id="suggestions" class="suggestions" role="listbox" aria-label="City suggestions" hidden></ul>
+      </form>
+      <div class="recent-row" id="recent-row" hidden><span>RECENT</span>
+        <div id="recent-list" class="recent-list"></div>
+      </div>
+    </section>
+
+    <div id="status-message" class="status-message" role="status" aria-live="polite" hidden></div>
+
+    <section id="weather-content" class="weather-content" aria-label="Weather information" aria-busy="true">
+      <div class="dashboard-grid">
+        <article class="glass current-card" aria-labelledby="current-heading">
+          <div class="card-topline">
+            <div>
+              <p class="eyebrow" id="local-date">LOCAL WEATHER</p>
+              <h2 id="current-heading">Pune, IN</h2>
+              <p id="local-time" class="muted">—</p>
+            </div><span class="live-pill"><span class="live-dot"></span> LIVE</span>
+          </div>
+          <div class="current-main">
+            <div class="temperature-wrap">
+              <p id="temperature" class="temperature">--°</p>
+              <p id="description" class="condition">Loading weather…</p>
+            </div>
+            <div id="weather-icon" class="weather-icon" role="img" aria-label="Weather condition">☀️</div>
+          </div>
+          <p class="feels-line">Feels like <strong id="feels-like">--°</strong></p>
+          <div class="divider"></div>
+          <div class="sun-row">
+            <div><span class="sun-symbol" aria-hidden="true">↗</span><span class="muted">Sunrise</span><strong
+                id="sunrise">—</strong></div>
+            <div><span class="sun-symbol sunset" aria-hidden="true">↘</span><span class="muted">Sunset</span><strong
+                id="sunset">—</strong></div>
+          </div>
+        </article>
+
+        <section class="glass details-card" aria-labelledby="details-heading">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">RIGHT NOW</p>
+              <h2 id="details-heading">Weather details</h2>
+            </div><span class="detail-spark" aria-hidden="true">✳</span>
+          </div>
+          <div class="details-grid">
+            <div class="detail-item"><span class="detail-icon" aria-hidden="true">◌</span><span
+                class="muted">Humidity</span><strong id="humidity">—</strong></div>
+            <div class="detail-item"><span class="detail-icon" aria-hidden="true">≋</span><span
+                class="muted">Wind</span><strong id="wind">—</strong></div>
+            <div class="detail-item"><span class="detail-icon" aria-hidden="true">◉</span><span
+                class="muted">Pressure</span><strong id="pressure">—</strong></div>
+            <div class="detail-item"><span class="detail-icon" aria-hidden="true">◍</span><span
+                class="muted">Visibility</span><strong id="visibility">—</strong></div>
+          </div>
+        </section>
+      </div>
+
+      <section class="glass forecast-section" aria-labelledby="hourly-heading">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">THE NEXT 24 HOURS</p>
+            <h2 id="hourly-heading">Hourly forecast</h2>
+          </div><span class="section-caption">3-hour intervals</span>
+        </div>
+        <div id="hourly-list" class="hourly-list">
+          <div class="skeleton hourly-skeleton"></div>
+        </div>
+        <div class="chart-wrap"><canvas id="temperature-chart" aria-label="Temperature trend for the next 24 hours"
+            role="img"></canvas></div>
+      </section>
+
+      <section class="glass forecast-section daily-section" aria-labelledby="daily-heading">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">PLAN AHEAD</p>
+            <h2 id="daily-heading">5-day forecast</h2>
+          </div>
+        </div>
+        <div id="daily-list" class="daily-list">
+          <div class="skeleton daily-skeleton"></div>
+        </div>
+      </section>
+    </section>
+  </main>
+  <footer>Built for ISA Web Development Coordinator Pre-Interview Task <span aria-hidden="true">·</span> Weather data by
+    OpenWeatherMap</footer>
+</body>
+
+</html>

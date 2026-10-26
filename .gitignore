@@ -1,0 +1,2 @@
+# Keep the personal API key out of version control.
+config.js
